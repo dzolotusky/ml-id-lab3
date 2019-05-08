@@ -1,0 +1,9 @@
+**/.DS_Store
+config_train.json
+ua.test
+u.data
+ua.base*
+configuration_qa.json
+configuration_prod.json
+*.css
+*.html

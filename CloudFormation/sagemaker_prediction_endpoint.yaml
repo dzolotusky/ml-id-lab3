@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS SageMaker Endpoint'
+Parameters:
+  BucketName:
+    Description: Name of data bucket
+    MaxLength: '64'
+    MinLength: '1'
+    Type: String
+  CommitID:
+    Description: ID of the current commit
+    MaxLength: '64'
+    MinLength: '1'
+    Type: String
+  Environment:
+    Description: Current environment we are working in
+    MaxLength: '64'
+    MinLength: '1'
+    Type: String
+  ParentStackName:
+    Description: Name of pipeline stack
+    MaxLength: '64'
+    MinLength: '1'
+    Type: String
+  ModelData:
+    Description: S3 path to model data
+    MinLength: '1'
+    Type: String
+  ContainerImage:
+    Description: Docker image used for prediction endpoint
+    MinLength: '1'
+    Type: String
+  Timestamp:
+    Description: Resource timestamp to prevent naming conflicts
+    MaxLength: '64'
+    MinLength: '1'
+    Type: String
+Resources:
+  Model:
+    Type: "AWS::SageMaker::Model"
+    Properties:
+      ModelName: !Sub ${Environment}-${ParentStackName}-${CommitID}-${Timestamp}
+      ExecutionRoleArn: 
+        Fn::ImportValue:
+          !Sub "${ParentStackName}-sagemaker-role-arn" 
+      PrimaryContainer:
+        ModelDataUrl: !Sub ${ModelData}
+        Image: !Sub ${ContainerImage}
+  Endpoint:
+    Type: "AWS::SageMaker::Endpoint"
+    DependsOn: EndpointConfig
+    Properties:
+      EndpointName: !Sub ${Environment}-${ParentStackName}-${CommitID}-${Timestamp}
+      EndpointConfigName: !GetAtt EndpointConfig.EndpointConfigName
+  EndpointConfig:
+    Type: "AWS::SageMaker::EndpointConfig"
+    DependsOn: Model
+    Properties:
+        EndpointConfigName: !Sub ${Environment}-${ParentStackName}-${CommitID}-${Timestamp}
+        ProductionVariants:
+        - ModelName: !GetAtt Model.ModelName
+          VariantName: AllTraffic
+          InitialInstanceCount: 1
+          InstanceType: ml.t2.medium
+          InitialVariantWeight: 1
